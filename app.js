@@ -86,14 +86,14 @@ app.get('/users/:id',auth ,async (req, res) => {
       
       // req.body is empty
       if (!req.body) {
-        return res.status(204).json({ error: 'Request body cant empty' })
+        return res.status(400).json({ error: 'Request body cant empty' })
       }
 
       // req.body is present but doesn't have any of
       // first_name, last_name, password, username
       if (!req.body.first_name && !req.body.last_name && !req.body.password) 
       {
-        return res.status(204).json({ error: 'Request body doesnt have any of first_name, last_name, password' })
+        return res.status(400).json({ error: 'Request body doesnt have any of first_name, last_name, password' })
       }
       // if user_id is not present in the request
       const id = req.params.id;
@@ -124,16 +124,18 @@ app.get('/users/:id',auth ,async (req, res) => {
               return res.status(400).json({ error: 'ID cant be updated' })
             }
         }
-
-
+      
+      const salt = await bcrypt.genSalt(10);
+      const securedPassword = await bcrypt.hash(password, salt)
+      
       const user = await User.findOne({ where: { id } })
       user.first_name = first_name
       user.last_name = last_name
-      user.password = password
+      user.password = securedPassword
   
       await user.save()
   
-      return res.json(user)
+      return res.status(204).json()
     } catch (err) {
       console.log(err)
       return res.status(500).json({ error: 'Something went wrong' })
