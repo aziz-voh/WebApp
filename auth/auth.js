@@ -25,7 +25,7 @@ const BasicAuth = async (req, res, next) => {
     //TODO: Verify with TA??
     const user = await User.findOne({ where: { username: email } });
     if (!user) {
-        return res.status(400).json({
+        return res.status(401).json({
             message: 'Bad Request'
         })
     }
