@@ -80,7 +80,7 @@ app.get('/users/:id',auth ,async (req, res) => {
 //UPDATING USER
 
   app.put('/users/:id',auth, async (req, res) => {
-    const { first_name, last_name, password } = req.body
+    const { first_name, last_name, password,username } = req.body
     
     try {
       
@@ -91,7 +91,7 @@ app.get('/users/:id',auth ,async (req, res) => {
 
       // req.body is present but doesn't have any of
       // first_name, last_name, password, username
-      if (!req.body.first_name && !req.body.last_name && !req.body.password) 
+      if (!req.body.first_name && !req.body.last_name && !req.body.password && !req.body.username) 
       {
         return res.status(400).json({ error: 'Request body doesnt have any of first_name, last_name, password' })
       }
@@ -113,11 +113,11 @@ app.get('/users/:id',auth ,async (req, res) => {
     var DBUserObj = await User.findByPk(id);
         // check if username is present in the request body
         // if present, verify it matches the username in the db
-        if (req.body.username) {
-            if (DBUserObj.username !== req.body.username) {
-              return res.status(400).json({ error: 'Username cant be updated' })
-            }
-        }
+//         if (req.body.username) {
+//             if (DBUserObj.username !== req.body.username) {
+//               return res.status(400).json({ error: 'Username cant be updated' })
+//             }
+//         }
         // check if id is present in the request body and if it matches the id in the request
         if (req.body.id) {
             if (DBUserObj.id !== req.body.id) {
@@ -132,6 +132,7 @@ app.get('/users/:id',auth ,async (req, res) => {
       user.first_name = first_name
       user.last_name = last_name
       user.password = securedPassword
+      user.username=username;
   
       await user.save()
   
