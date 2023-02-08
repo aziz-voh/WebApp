@@ -170,19 +170,51 @@ app.put('/v1/users/:id',auth, async (req, res) => {
 
 //Posting Product Information
   app.post('/v1/product',auth, async(req,res)=>{
-   
-    const owner_user_id=req.response.id
-    const { name, description, sku,manufacturer,quantity } = req.body
     try{
-    const product = await Product.create({name, description,sku,manufacturer,quantity,owner_user_id})
-    res.status(201).json(product); 
+    const owner_user_id=req.response.id
+    const { name, description,sku,manufacturer,quantity } = req.body
+    
+  // Validation for ID
+  if (req.body.id){
+    return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
+  }
+
+  //Validation for quantity
+  if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
+    return res.status(400).json({ error: 'Quantiy should be between 0 and 100 and it shouldnt be string' })
+  }
+  //All four fields should be present
+if (!name ||
+    !description ||
+    !sku ||
+    !manufacturer ||
+    !quantity)
+    {
+      return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
     }
+    const getProduct = await Product.findOne({
+      where: {
+          sku: sku,
+      },
+  })
+
+  if (getProduct) {
+    return res.status(400).json({ error: 'Sku already exists!,Please try a different email address' })
+  }
+  else
+  {
+  const product = await Product.create({name, description,sku,manufacturer,quantity,owner_user_id})
+  res.status(201).json(product); 
+  }
+}
     catch (err) {
       console.log(err)
       return res.status(500).json({ error: 'Some error occurred while creating the Product' })
     }
    })
   
+
+//UPDATING Product Information
    app.put('/v1/product/:id', auth, async (req, res) => {
     const id=req.params.id;
     const product = await Product.findOne({ where: { id } })
@@ -205,8 +237,6 @@ app.put('/v1/users/:id',auth, async (req, res) => {
     }
   });
 
-  
-   
   
 ////Deleting Product Information
 app.delete('/v1/product/:id', auth, async (req, res) => {

@@ -48,7 +48,7 @@ module.exports = (sequelize, DataTypes) => {
        allowNull: true,
        validate: {
          notEmpty: { msg: 'Quantity must not be empty' },
-         min:0,//error capture
+         min:0,
          max:100
        },
      },
