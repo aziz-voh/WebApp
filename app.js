@@ -173,15 +173,18 @@ app.put('/v1/users/:id',auth, async (req, res) => {
     try{
     const owner_user_id=req.response.id
     const { name, description,sku,manufacturer,quantity } = req.body
-    
+
   // Validation for ID
   if (req.body.id){
     return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
   }
-
+  //Validation for date_added,date_last_updated and owner_user_id
+  if(req.body.owner_user_id || req.body.date_added || req.body.date_last_updated ){
+    return res.status(400).json({ error: 'These properties cant be provided by the user' })
+  }
   //Validation for quantity
   if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
-    return res.status(400).json({ error: 'Quantiy should be between 0 and 100 and it shouldnt be string' })
+    return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
   }
   //All four fields should be present
 if (!name ||
@@ -199,7 +202,7 @@ if (!name ||
   })
 
   if (getProduct) {
-    return res.status(400).json({ error: 'Sku already exists!,Please try a different email address' })
+    return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
   }
   else
   {
@@ -214,30 +217,122 @@ if (!name ||
    })
   
 
-//UPDATING Product Information
-   app.put('/v1/product/:id', auth, async (req, res) => {
-    const id=req.params.id;
-    const product = await Product.findOne({ where: { id } })
-    if (!product) return res.status(404).send('Product not found');
-    
-    if (product.owner_user_id.toString() !== req.response.id.toString()) {
-      return res.status(401).send('You are not authorized to update this product');
-    }
+//UPDATING Product Information---PATCH
+app.patch('/v1/product/:id', auth, async (req, res) => {
+  const id=req.params.id;
+  const product = await Product.findOne({ where: { id } })
+  if (!product) return res.status(404).send('Product not found');
   
-    const { name, description, price } = req.body;
-    product.name = name;
-    // product.description = description;
-    // product.price = price;
-    
-    try {
-      await product.save();
-      res.status(200).send(product);
-    } catch (error) {
-      res.status(400).send(error);
-    }
-  });
+  if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    return res.status(401).send('You are not authorized to update this product');
+  }
 
+  const { name, description, sku,manufacturer,quantity } = req.body;
+  product.name = name;
+  product.description = description;
+  product.sku = sku;
+  product.manufacturer = manufacturer;
+  product.quantity = quantity;
   
+  try {
+  // Validation for ID
+  if (req.body.id){
+    return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
+  }
+  //Validation for date_added,date_last_updated and owner_user_id
+  if(req.body.owner_user_id || req.body.date_added || req.body.date_last_updated ){
+    return res.status(400).json({ error: 'These properties cant be provided by the user' })
+  }
+  //Validation for quantity
+  if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
+    return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
+  }
+//All four fields should be present
+ if (!name ||
+  !description ||
+  !sku ||
+  !manufacturer ||
+  !quantity)
+  {
+    return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
+  }
+  const getProduct = await Product.findOne({
+    where: {
+        sku: sku,
+    },
+})
+
+if (getProduct) {
+  return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
+}
+else{
+    await product.save();
+    return res.status(204).json()
+  } 
+}  catch (error) {
+    res.status(400).send(error);
+  }
+});
+
+//UPDATING Product Information--PUT
+app.put('/v1/product/:id', auth, async (req, res) => {
+  const id=req.params.id;
+  const product = await Product.findOne({ where: { id } })
+  if (!product) return res.status(404).send('Product not found');
+  
+  if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    return res.status(401).send('You are not authorized to update this product');
+  }
+
+  const { name, description, sku,manufacturer,quantity } = req.body;
+  product.name = name;
+  product.description = description;
+  product.sku = sku;
+  product.manufacturer = manufacturer;
+  product.quantity = quantity;
+  
+  try {
+  // Validation for ID
+  if (req.body.id){
+    return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
+  }
+  //Validation for date_added,date_last_updated and owner_user_id
+  if(req.body.owner_user_id || req.body.date_added || req.body.date_last_updated ){
+    return res.status(400).json({ error: 'These properties cant be provided by the user' })
+  }
+  //Validation for quantity
+  if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
+    return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
+  }
+//All four fields should be present
+ if (!name ||
+  !description ||
+  !sku ||
+  !manufacturer ||
+  !quantity)
+  {
+    return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
+  }
+  const getProduct = await Product.findOne({
+    where: {
+        sku: sku,
+    },
+})
+
+if (getProduct) {
+  return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
+}
+else{
+    await product.save();
+    return res.status(204).json()
+  } 
+}  catch (error) {
+    res.status(400).send(error);
+  }
+});
+
+
+
 ////Deleting Product Information
 app.delete('/v1/product/:id', auth, async (req, res) => {
   try {
@@ -252,7 +347,7 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
     }
     // Delete the product
     await product.destroy();
-    res.json({ message: 'Product successfully deleted' });
+    return res.status(204).json()
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

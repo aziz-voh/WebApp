@@ -16,21 +16,21 @@ module.exports = (sequelize, DataTypes) => {
 
    name: {
      type: DataTypes.STRING,
-     allowNull: true,
+     allowNull: false,
      validate: {
        notEmpty: { msg: 'Name must not be empty' },
      },
    },
    description: {
      type: DataTypes.STRING,
-     allowNull: true,
+     allowNull: false,
      validate: {
        notEmpty: { msg: 'Description must not be empty' },
      },
    },
    sku: {
      type: DataTypes.STRING,
-     allowNull: true,
+     allowNull: false,
      unique: true,//error capture
      validate: {
        notEmpty: { msg: 'sku must not be empty' },
@@ -38,14 +38,14 @@ module.exports = (sequelize, DataTypes) => {
    },
    manufacturer: {
        type: DataTypes.STRING,
-       allowNull: true,
+       allowNull: false,
        validate: {
          notEmpty: { msg: 'Manufacturer must not be empty' },
        },
      },
      quantity: {
        type: DataTypes.INTEGER,
-       allowNull: true,
+       allowNull: false,
        validate: {
          notEmpty: { msg: 'Quantity must not be empty' },
          min:0,
