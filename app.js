@@ -1,13 +1,16 @@
-const { sequelize,User} = require('./models')
+const { sequelize,User,Product} = require('./models')
 const express = require('express')
 const app = express()
 app.use(express.json())
 const bcrypt = require('bcrypt');
 const auth=require('./auth/auth')
 
+app.get('/healthz', async (req, res) => {
+  res.sendStatus(200);
+})
 
 ///POSTING USER INFORMATION
-app.post('/users', async (req, res) => {
+app.post('/v1/users', async (req, res) => {
   const { first_name, username, last_name,password } = req.body
 
   try {
@@ -44,7 +47,16 @@ app.post('/users', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const securedPassword = await bcrypt.hash(password, salt)
     const user = await User.create({first_name, username, last_name,password:securedPassword})
-    res.status(201).json(user)
+    const userWithoutPassword = {
+      id:user.id,
+      first_name: user.first_name,
+      username: user.username,
+      last_name: user.last_name,
+      account_updated: user.account_updated,
+      account_created: user.account_created
+      };
+      
+      res.status(201).json(userWithoutPassword);
 }
   } catch (err) {
     console.log(err)
@@ -52,12 +64,16 @@ app.post('/users', async (req, res) => {
   }
 })
 
-app.get('/healthz', async (req, res) => {
-    res.sendStatus(200);
-  })
-
-
-app.get('/users/:id',auth ,async (req, res) => {
+//FETCHING USER INFORMATION
+app.get('/v1/users/:id',auth ,async (req, res) => {
+  if (req.params.id){
+        if (req.response.id !== parseInt(req.params.id)) {
+            return res.status(403).json({
+                message: 'Forbidden Resource'
+            }),
+                console.log("User not match");
+        }
+    }
     const id = req.params.id
     try {
       const user = await User.findOne({
@@ -78,8 +94,15 @@ app.get('/users/:id',auth ,async (req, res) => {
 
 
 //UPDATING USER
-
-  app.put('/users/:id',auth, async (req, res) => {
+app.put('/v1/users/:id',auth, async (req, res) => {
+  if (req.params.id){
+    if (req.response.id !== parseInt(req.params.id)) {
+        return res.status(403).json({
+            message: 'Forbidden Resource'
+        }),
+            console.log("User not match");
+    }
+}
     const { first_name, last_name, password,username } = req.body
     
     try {
@@ -113,11 +136,11 @@ app.get('/users/:id',auth ,async (req, res) => {
     var DBUserObj = await User.findByPk(id);
         // check if username is present in the request body
         // if present, verify it matches the username in the db
-//         if (req.body.username) {
-//             if (DBUserObj.username !== req.body.username) {
-//               return res.status(400).json({ error: 'Username cant be updated' })
-//             }
-//         }
+        if (req.body.username) {
+            if (DBUserObj.username !== req.body.username) {
+              return res.status(400).json({ error: 'Username cant be updated' })
+            }
+        }
         // check if id is present in the request body and if it matches the id in the request
         if (req.body.id) {
             if (DBUserObj.id !== req.body.id) {
@@ -145,10 +168,97 @@ app.get('/users/:id',auth ,async (req, res) => {
 
 
 
+//Posting Product Information
+  app.post('/v1/product',auth, async(req,res)=>{
+   
+    const owner_user_id=req.response.id
+    const { name, description, sku,manufacturer,quantity } = req.body
+    try{
+    const product = await Product.create({name, description,sku,manufacturer,quantity,owner_user_id})
+    res.status(201).json(product); 
+    }
+    catch (err) {
+      console.log(err)
+      return res.status(500).json({ error: 'Some error occurred while creating the Product' })
+    }
+   })
+  
+   app.put('/v1/product/:id', auth, async (req, res) => {
+    const id=req.params.id;
+    const product = await Product.findOne({ where: { id } })
+    if (!product) return res.status(404).send('Product not found');
+    
+    if (product.owner_user_id.toString() !== req.response.id.toString()) {
+      return res.status(401).send('You are not authorized to update this product');
+    }
+  
+    const { name, description, price } = req.body;
+    product.name = name;
+    // product.description = description;
+    // product.price = price;
+    
+    try {
+      await product.save();
+      res.status(200).send(product);
+    } catch (error) {
+      res.status(400).send(error);
+    }
+  });
+
+  
+   
+  
+////Deleting Product Information
+app.delete('/v1/product/:id', auth, async (req, res) => {
+  try {
+    const id=req.params.id;
+    const product = await Product.findOne({ where: { id } })
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    // Check if the user who added the product is making the request
+    if (product.owner_user_id !== req.response.id) {
+      return res.status(401).json({ message: 'Not authorized to delete this product' });
+    }
+    // Delete the product
+    await product.destroy();
+    res.json({ message: 'Product successfully deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+  
+
+//GET PRODUCTS
+  app.get('/v1/product/:id',async (req, res) => {
+    const id = req.params.id
+    try {
+      const product = await Product.findOne({
+        where: { id }
+         })
+         if (!product){
+            return res.status(400).json({ error: 'ID NOT PRESENT' })
+         }
+      return res.json(product)
+    } catch (err) {
+      console.log(err)
+      return res.status(500).json({ error: 'Something went wrong' })
+    }
+  })
+   
+
+
+
+
+
+
+
 //Listening 
 app.listen({ port: 8000 }, async () => {
   console.log('Server up on http://localhost:8000')
+  await sequelize.authenticate()
   console.log('Database Connected!')
+  await sequelize.sync({alter:true});
   
 })
 
