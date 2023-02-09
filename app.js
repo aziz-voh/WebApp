@@ -247,28 +247,20 @@ app.patch('/v1/product/:id', auth, async (req, res) => {
   if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
     return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
   }
-//All four fields should be present
- if (!name ||
-  !description ||
-  !sku ||
-  !manufacturer ||
-  !quantity)
-  {
-    return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
-  }
+if(sku){
   const getProduct = await Product.findOne({
     where: {
         sku: sku,
     },
 })
-
-if (getProduct) {
+if (getProduct!==null) {
   return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
 }
-else{
-    await product.save();
+}
+
+  await Product.update({ ...req.body },{where: {id},});
+    // await product.update(req.body,);
     return res.status(204).json()
-  } 
 }  catch (error) {
     res.status(400).send(error);
   }
