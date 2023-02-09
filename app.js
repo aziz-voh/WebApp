@@ -373,7 +373,7 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
 //Listening 
 app.listen({ port: 8000 }, async () => {
   console.log('Server up on http://localhost:8000')
-  await sequelize.authenticate()
+//   await sequelize.authenticate()
   console.log('Database Connected!')
   await sequelize.sync({alter:true});
   
