@@ -39,15 +39,18 @@ const BasicAuth = async (req, res, next) => {
         })
     }
     // verify if user is trying to access his own account
-    if (req.params.id){
-        if (user.id !== parseInt(req.params.id)) {
-            return res.status(403).json({
-                message: 'Forbidden Resource'
-            }),
-                console.log("User not match");
-        }
-    }
+    // if (req.params.id){
+    //     if (user.id !== parseInt(req.params.id)) {
+    //         return res.status(403).json({
+    //             message: 'Forbidden Resource'
+    //         }),
+    //             console.log("User not match");
+    //     }
+    // }
     // authentication successful
+    req.response = user.dataValues;
+
+
     next();
 }
 
