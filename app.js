@@ -354,7 +354,7 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
         where: { id }
          })
          if (!product){
-            return res.status(400).json({ error: 'ID NOT PRESENT' })
+            return res.status(404).json({ error: 'ID NOT PRESENT' })
          }
       return res.json(product)
     } catch (err) {
