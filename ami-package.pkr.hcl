@@ -1,0 +1,54 @@
+packer {
+  required_plugins {
+    amazon = {
+      version = ">= 1.0.0"
+      source  = "github.com/hashicorp/amazon"
+    }
+  }
+}
+
+locals {
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+}
+
+source "amazon-ebs" "Linux_Machine" {
+  profile="dev"
+  ami_name = "CUSTOMIZE_AMI${local.timestamp}"
+
+  
+
+  source_ami_filter {
+    filters = {
+      name                = "amzn2-ami-kernel-5.10-hvm-2.0.20230207.0-x86_64-gp2"
+      root-device-type    = "ebs"
+      virtualization-type = "hvm"
+    }
+    most_recent = true
+    owners      = ["amazon"]
+  }
+  # source_ami = "ami-0dfcb1ef8550277af"
+
+
+  instance_type = "t2.micro"
+  region = "us-east-1"
+  ssh_username = "ec2-user"
+}
+
+build {
+  sources = [
+    "source.amazon-ebs.Linux_Machine"
+  ]
+
+  provisioner "file" {
+    source = "./webApp.zip"
+    destination = "/tmp/webApp.zip"
+  }
+  provisioner "file" {
+    source      = "./project.service"
+    destination = "/tmp/project.service"
+  }
+  
+  provisioner "shell" {
+    script = "./app.sh"
+  }
+}
