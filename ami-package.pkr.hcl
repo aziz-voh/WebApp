@@ -11,12 +11,22 @@ locals {
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
 }
 
+variable "Access_key_ID" {
+  default       = "AKIAUH3BDF6AUFZR6T7V"
+  type          = string
+}
+variable "Secret_Access_Key" {
+  default       = "7mjREJzqURbyGf0C/GT45aQmLhEYMGAla+0OGrhs"
+  type          = string
+}
+
+
 source "amazon-ebs" "Linux_Machine" {
   profile="dev"
+  ami_users=["084961205891"]
   ami_name = "CUSTOMIZE_AMI${local.timestamp}"
-
-  
-
+  access_key=var.Access_key_ID
+  secret_key=var.Secret_Access_Key
   source_ami_filter {
     filters = {
       name                = "amzn2-ami-kernel-5.10-hvm-2.0.20230207.0-x86_64-gp2"
@@ -26,7 +36,6 @@ source "amazon-ebs" "Linux_Machine" {
     most_recent = true
     owners      = ["amazon"]
   }
-  # source_ami = "ami-0dfcb1ef8550277af"
 
 
   instance_type = "t2.micro"
