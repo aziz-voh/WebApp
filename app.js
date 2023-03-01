@@ -1,9 +1,20 @@
-const { sequelize,User,Product} = require('./models')
+const { sequelize,User,Product,Image} = require('./models')
 const express = require('express')
 const app = express()
 app.use(express.json())
 const bcrypt = require('bcrypt');
 const auth=require('./auth/auth')
+const bodyParser = require('body-parser');
+const { S3Client,PutObjectCommand,DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const AWS = require('aws-sdk');
+require('dotenv').config()
+const multer  = require('multer')
+const uuid = require('uuid');
+const crypto = require('crypto');
+const sharp = require('sharp');
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
+
 
 app.get('/healthz', async (req, res) => {
   res.sendStatus(200);
@@ -247,16 +258,7 @@ app.patch('/v1/product/:id', auth, async (req, res) => {
   if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
     return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
   }
-if(sku){
-  const getProduct = await Product.findOne({
-    where: {
-        sku: sku,
-    },
-})
-if (getProduct!==null) {
-  return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
-}
-}
+
 
   await Product.update({ ...req.body },{where: {id},});
     // await product.update(req.body,);
@@ -305,19 +307,9 @@ app.put('/v1/product/:id', auth, async (req, res) => {
   {
     return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
   }
-  const getProduct = await Product.findOne({
-    where: {
-        sku: sku,
-    },
-})
 
-if (getProduct) {
-  return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
-}
-else{
     await product.save();
     return res.status(204).json()
-  } 
 }  catch (error) {
     res.status(400).send(error);
   }
@@ -368,6 +360,195 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
 
 
 
+
+
+
+
+const bucketName = process.env.BUCKET_NAME
+const region = process.env.BUCKET_REGION
+const accessKeyId = process.env.ACCESS_KEY
+const secretAccessKey = process.env.SECRET_ACCESS
+
+// Set up AWS S3 configuration
+const s3 = new S3Client({
+  region,
+  credentials: {
+    accessKeyId,
+    secretAccessKey
+  }
+})
+
+// cosnt s3=new AWS.A3()
+const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
+
+
+app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
+  const id=req.params.id;
+  const product = await Product.findOne({ where: { id } })
+  if (!product) return res.status(404).send('Product not found');
+  if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    return res.status(401).json({
+      error: 'You are not authorized to post this image under this product',
+    });
+  }
+  
+  const file = req.file
+  if (!file.mimetype.startsWith("image/")) {
+    return res.status(400).json({
+      error: "The file type is not supported",
+    });
+  }
+  const fileBuffer = await sharp(file.buffer)
+    .resize({ height: 1920, width: 1080, fit: "contain" })
+    .toBuffer() 
+  const fileName = generateFileName()
+  const uploadParams = {
+    Bucket: bucketName,
+    Body: fileBuffer,
+    Key: fileName,
+    ContentType:file.mimetype
+  }
+  // Send the upload to S3
+  
+  await s3.send(new PutObjectCommand(uploadParams));
+  const s3BucketPath = `s3://${bucketName}`;
+  const image = await Image.create({
+    product_id:req.params.id,
+    file_name:fileName,
+    date_created:new Date(),
+    s3_bucket_path:s3BucketPath,
+  })
+  let result = await image.save();
+  return res.status(201).send(result);
+});
+
+//DELETING THE IMAGES
+app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
+  
+  const id=req.params.id;
+  const product = await Product.findOne({ where: { id } })
+  if (!product) return res.status(404).send('Product not found');
+  if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    return res.status(401).json({
+      error: 'You are not authorized to delete this image under this product',
+    });
+  }
+
+  const image = await Image.findOne({
+    where: {
+      image_id: req.params.image_id,
+    },
+  });
+  if (!image) {
+    return res.status(404).json({
+      message: "No product image found",
+    });
+  }
+  
+  if (image.product_id!=id) {
+    return res.status(404).json({
+      message:'This image doesnt belong to this Product',
+    });
+  }
+  
+  const deleteParams = {
+    Bucket: bucketName,
+    Key: image.file_name,
+  }
+  try {
+    await image.destroy();
+    await s3.send(new DeleteObjectCommand(deleteParams));
+    return res.status(204).send();
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send("Error deleting image from S3 bucket");
+  }
+});
+
+
+// Route to get details of a specific product image
+app.get('/v1/product/:id/image/:image_id',auth, async (req, res) => {
+  const id=req.params.id;
+  const product = await Product.findOne({ where: { id } })
+  if (req.params.id){
+    if (req.response.id !== parseInt(product.owner_user_id)) {
+        return res.status(403).json({
+            message: 'Forbidden Resource'
+        }),
+            console.log("User not match");
+    }
+}
+  if (!product) return res.status(404).send('Product not found');
+  if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    return res.status(401).json({
+      error: 'You are not authorized to fetch this image under this product',
+    });
+  }
+
+  try {
+    console.log(req.params)
+    const image = await Image.findOne({
+      where: {
+        image_id: req.params.image_id,
+      },
+    });
+    if (!image) {
+      return res.status(404).json({
+        message: "No product image found",
+      });
+    }
+    if(image.product_id!=id){
+      return res.status(403).json({
+        message: "This product is not allowed to access other's image",
+      });
+    }
+    res.status(200).json(image);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Internal server error.');
+  }
+});
+
+
+
+// Route to get details of all product images
+app.get('/v1/product/:id/image', auth,async (req, res) => {
+  const id=req.params.id;
+  const product = await Product.findOne({ where: { id } })
+  console.log(product)
+  if (req.params.id){
+    if (req.response.id !== parseInt(product.owner_user_id)) {
+        return res.status(403).json({
+            message: 'Forbidden Resource'
+        }),
+            console.log("User not match");
+    }
+}
+  if (!product) return res.status(404).json({ message: "Product not found", });
+  if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    return res.status(401).json({
+      error: 'You are not authorized to fetch this image under this product',
+    });
+  }
+
+  try {
+    const images = await Image.findAll({
+      where: {
+        product_id: req.params.id,
+      },
+    });
+    if (!images.length) {
+      return res.status(404).json({
+        message: "No product images found",
+      });
+    }
+
+    res.status(200).json(images);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Internal server error.');
+  }
+});
 
 
 //Listening 
