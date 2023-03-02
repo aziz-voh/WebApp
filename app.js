@@ -365,22 +365,22 @@ app.get('/v1/product/:id',async (req, res) => {
 
 
 const bucketName = process.env.BUCKET_NAME
-const region = "us-east-1"
+const region = process.env.BUCKET_REGION
 const accessKeyId = process.env.ACCESS_KEY
 const secretAccessKey = process.env.SECRET_ACCESS
 
 // Set up AWS S3 configuration
-const s3 = new S3Client({
-  region,
-  credentials: {
-    accessKeyId,
-    secretAccessKey
-  }
-})
-// const s3 = new AWS.S3({
-//   accessKeyId: accessKeyId,
-//   secretAccessKey: secretAccessKey
-// });
+// const s3 = new S3Client({
+//   region,
+//   credentials: {
+//     accessKeyId,
+//     secretAccessKey
+//   }
+// })
+const s3 = new AWS.S3({
+  accessKeyId: accessKeyId,
+  secretAccessKey: secretAccessKey
+});
 // const s3=new AWS.A3()
 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
 
@@ -413,7 +413,7 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
   }
   // Send the upload to S3
   
-  await s3.send(new PutObjectCommand(uploadParams));
+  await s3.upload(uploadParams);
   const s3BucketPath = `s3://${bucketName}`;
   const image = await Image.create({
     product_id:req.params.id,
@@ -460,7 +460,7 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
   }
   try {
     await image.destroy();
-    await s3.send(new DeleteObjectCommand(deleteParams));
+    await s3.upload(deleteParams);
     return res.status(204).send();
   } catch (err) {
     console.log(err);
