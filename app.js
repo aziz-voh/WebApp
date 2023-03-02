@@ -339,7 +339,7 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
   
 
 //GET PRODUCTS
-  app.get('/v1/product/:id',async (req, res) => {
+app.get('/v1/product/:id',async (req, res) => {
     const id = req.params.id
     try {
       const product = await Product.findOne({
@@ -353,7 +353,7 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
       console.log(err)
       return res.status(500).json({ error: 'Something went wrong' })
     }
-  })
+})
    
 
 
@@ -551,8 +551,9 @@ app.get('/v1/product/:id/image', auth,async (req, res) => {
 });
 
 
+const port = process.env.PORT || 8000;
 //Listening 
-app.listen({ port: 8000 }, async () => {
+app.listen(port, async () => {
   console.log('Server up on http://localhost:8000')
   await sequelize.authenticate()
   console.log('Database Connected!')
