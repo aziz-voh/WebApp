@@ -2,6 +2,20 @@
 Description=webApp
 After=cloud-final.service
 
+# variables
+Environment=PORT=8000
+Environment=BUCKET_NAME='for-demo-today'
+Environment=DB_USER='postgres'
+Environment=DB_DATABASE_NAME='postgres'
+Environment=DB_PASSWORD='password123'
+Environment=DB_HOST='localhost'
+Environment=DB_DIALECT='postgres'
+Environment=DB_PORT=5432
+Environment=ACCESS_KEY='AKIAUH3BDF6ATD4O3FM7'
+Environment=SECRET_ACCESS='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'
+
+
+
 [Service]
 WorkingDirectory=/home/ec2-user
 ExecStart=/usr/bin/node /home/ec2-user/app.js
