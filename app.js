@@ -407,7 +407,7 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
   }
   // Send the upload to S3
   
-  await s3.upload(uploadParams);
+  await S3.upload(uploadParams);
   const s3BucketPath = `s3://${bucketName}`;
   const image = await Image.create({
     product_id:req.params.id,
@@ -454,7 +454,7 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
   }
   try {
     await image.destroy();
-    await s3.deleteObject(deleteParams);
+    await S3.deleteObject(deleteParams);
     return res.status(204).send();
   } catch (err) {
     console.log(err);
