@@ -5,7 +5,7 @@ app.use(express.json())
 const bcrypt = require('bcrypt');
 const auth=require('./auth/auth')
 const bodyParser = require('body-parser');
-const { S3Client,PutObjectCommand,DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client,DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const AWS = require('aws-sdk');
 require('dotenv').config()
 const multer  = require('multer')
@@ -370,13 +370,10 @@ const accessKeyId = process.env.ACCESS_KEY
 const secretAccessKey = process.env.SECRET_ACCESS
 
 // Set up AWS S3 configuration
-const s3 = new S3Client({
-  region,
-  credentials: {
-    accessKeyId,
-    secretAccessKey
-  }
-})
+const S3 = new AWS.S3({
+  accessKeyId: accessKeyId,
+  secretAccessKey: secretAccessKey
+});
 
 // cosnt s3=new AWS.A3()
 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
@@ -410,7 +407,7 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
   }
   // Send the upload to S3
   
-  await s3.send(new PutObjectCommand(uploadParams));
+  await s3.upload(uploadParams);
   const s3BucketPath = `s3://${bucketName}`;
   const image = await Image.create({
     product_id:req.params.id,
@@ -457,7 +454,7 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
   }
   try {
     await image.destroy();
-    await s3.send(new DeleteObjectCommand(deleteParams));
+    await s3.deleteObject(deleteParams);
     return res.status(204).send();
   } catch (err) {
     console.log(err);
