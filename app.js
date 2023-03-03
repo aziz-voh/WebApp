@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const sharp = require('sharp');
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
+const fs = require('fs')
 
 
 app.get('/healthz', async (req, res) => {
@@ -382,7 +383,7 @@ const s3 = new AWS.S3({
   secretAccessKey: secretAccessKey
 });
 // const s3=new AWS.A3()
-const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
+const generateFileName = (bytes = 8) => crypto.randomBytes(bytes).toString('hex')
 
 
 app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
@@ -401,20 +402,21 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
       error: "The file type is not supported",
     });
   }
-  const fileBuffer = await sharp(file.buffer)
-    .resize({ height: 1920, width: 1080, fit: "contain" })
-    .toBuffer() 
+ 
   const fileName = generateFileName()
   const uploadParams = {
     Bucket: bucketName,
-    Body: fileBuffer,
-    Key: fileName,
-    ContentType:file.mimetype
+    Body: file.buffer,
+    Key: fileName
   }
   // Send the upload to S3
   
-  await s3.upload(uploadParams);
-  const s3BucketPath = `s3://${bucketName}`;
+  const data = await s3.upload(uploadParams, function(err, data){
+    if(err)
+      console.log(err);
+    console.log(data);
+  }).promise();
+  const s3BucketPath = data.Location;
   const image = await Image.create({
     product_id:req.params.id,
     file_name:fileName,
@@ -459,8 +461,12 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
     Key: image.file_name,
   }
   try {
+    const data = await s3.deleteObject(deleteParams, function(err, data){
+      if(err)
+        console.log(err);
+      console.log(data);
+    });
     await image.destroy();
-    await s3.upload(deleteParams);
     return res.status(204).send();
   } catch (err) {
     console.log(err);
