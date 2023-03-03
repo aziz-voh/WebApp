@@ -12,16 +12,16 @@ locals {
 }
 
 variable "Access_key_ID" {
-  default       = "AKIAUH3BDF6AUFZR6T7V"
+  default       = "AKIAUH3BDF6AVHMBORYQ"
   type          = string
 }
 variable "Secret_Access_Key" {
-  default       = "7mjREJzqURbyGf0C/GT45aQmLhEYMGAla+0OGrhs"
+  default       = "i/6AWlwwm4RgGRUOTJO2BNgq1uIJ4tHLKSwFC4Q1"
   type          = string
 }
 
 
-source "amazon-ebs" "Linux_Machine" {
+source "amazon-ebs" "Linux_Machine"{
   profile="dev"
   ami_users=["084961205891"]
   ami_name = "CUSTOMIZE_AMI${local.timestamp}"
