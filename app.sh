@@ -46,6 +46,11 @@ sudo systemctl start project.service
 
 
 
+echo "Installing AWS CloudWatch Agent"
+sudo yum install amazon-cloudwatch-agent -y
+
+
+
 
 
 
