@@ -20,23 +20,26 @@ const helper = require('./config/winston');
 
 app.get('/healthz', async (req, res) => {
   helper.logger.info("Healthz route hit!!");
-  helper.statsdClient.increment('healthz',1);
+  helper.statsdClient.increment('health_counter',1);
   res.sendStatus(200);
 })
 
 ///POSTING USER INFORMATION
 app.post('/v1/users', async (req, res) => {
   helper.logger.info("POST - User");
+  helper.statsdClient.increment('POST_user');
   const { first_name, username, last_name,password } = req.body
 
   try {
   //email should be valid
    const emailRegex =/^[a-zA-Z0-9.!#$%&'+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)$/
    if (!emailRegex.test(username)){
+    helper.logger.error("Check failed!! Invalid email.");
     return res.status(400).json({ error: 'Enter your Email ID in correct format. Example: abc@xyz.com' })
    }
     // Validation for ID
   if (req.body.id){
+    helper.logger.error("ID cannot be provided by the user");
     return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
   }
 
@@ -45,7 +48,7 @@ app.post('/v1/users', async (req, res) => {
     !password ||
     !first_name ||
     !last_name)
-    {
+    { helper.logger.error("All four fields should be present");
       return res.status(400).json({ error: 'username, password, first_name, last_name fields are required in the request body' })
     }
   
@@ -54,12 +57,15 @@ app.post('/v1/users', async (req, res) => {
           username: username,
       },
   }).catch((err) => {
+    helper.logger.error("Some error occurred while creating the user");
     return res.status(500).json({ error: 'Some error occurred while creating the user' })
   })
   if (getUser) {
+    helper.logger.error("User already exists!,Please try a different email address");
     return res.status(400).json({ error: 'User already exists!,Please try a different email address' })
   }
   else{
+    helper.logger.info("All Checks Passed.");
     const salt = await bcrypt.genSalt(10);
     const securedPassword = await bcrypt.hash(password, salt)
     const user = await User.create({first_name, username, last_name,password:securedPassword})
@@ -71,19 +77,23 @@ app.post('/v1/users', async (req, res) => {
       account_updated: user.account_updated,
       account_created: user.account_created
       };
-      
+      helper.logger.info("User Successfully added");
       res.status(201).json(userWithoutPassword);
 }
   } catch (err) {
     console.log(err)
+    helper.logger.error("DB Error", err);
     return res.status(500).json({ error: 'Some error occurred while creating the user' })
   }
 })
 
 //FETCHING USER INFORMATION
 app.get('/v1/users/:id',auth ,async (req, res) => {
+  helper.logger.info(`Get - user for id - ${req.params.id}.`);
+  helper.statsdClient.increment('GET_USER');
   if (req.params.id){
         if (req.response.id !== parseInt(req.params.id)) {
+          helper.logger.error(`Incorrect user details-Forbidden Resource`);
             return res.status(403).json({
                 message: 'Forbidden Resource'
             }),
@@ -99,10 +109,14 @@ app.get('/v1/users/:id',auth ,async (req, res) => {
         }
          })
          if (!user){
+            helper.logger.error("ID NOT PRESENT");
             return res.status(400).json({ error: 'ID NOT PRESENT' })
          }
+      helper.logger.info("Checks passed.");
+      helper.logger.info("User Successfully fetched");
       return res.json(user)
     } catch (err) {
+      helper.logger.error("DB Error", err);
       console.log(err)
       return res.status(500).json({ error: 'Something went wrong' })
     }
@@ -111,8 +125,11 @@ app.get('/v1/users/:id',auth ,async (req, res) => {
 
 //UPDATING USER
 app.put('/v1/users/:id',auth, async (req, res) => {
+  helper.logger.info(`UPDATE - user for id - ${req.params.id}.`);
+  helper.statsdClient.increment('UPDATE_user');
   if (req.params.id){
     if (req.response.id !== parseInt(req.params.id)) {
+      helper.logger.error(`Incorrect user details-Forbidden Resource`);
         return res.status(403).json({
             message: 'Forbidden Resource'
         }),
@@ -125,6 +142,7 @@ app.put('/v1/users/:id',auth, async (req, res) => {
       
       // req.body is empty
       if (!req.body) {
+        helper.logger.error("Request body cant empty");
         return res.status(400).json({ error: 'Request body cant empty' })
       }
 
@@ -132,20 +150,24 @@ app.put('/v1/users/:id',auth, async (req, res) => {
       // first_name, last_name, password, username
       if (!req.body.first_name && !req.body.last_name && !req.body.password && !req.body.username) 
       {
+        helper.logger.error("All four fields should be present");
         return res.status(400).json({ error: 'Request body doesnt have any of first_name, last_name, password' })
       }
       // if user_id is not present in the request
       const id = req.params.id;
       if (!id) 
       {
+        helper.logger.error("User id is not present in the request");
         return res.status(400).json({ error: 'User id is not present in the request' })
       }
        // check if account_created_at is present in the request body
     if (req.body.account_created) {
+        helper.logger.error("account_created cant be updated");
         return res.status(400).json({ error: 'account_created cant be updated' })
     }
     // check if account_updated_at is present in the request body
     if (req.body.account_updated) {
+      helper.logger.error("account_updated cant be updated");
       return res.status(400).json({ error: 'account_updated cant be updated' })
     }
 
@@ -154,16 +176,18 @@ app.put('/v1/users/:id',auth, async (req, res) => {
         // if present, verify it matches the username in the db
         if (req.body.username) {
             if (DBUserObj.username !== req.body.username) {
+              helper.logger.error("Username cant be updated");
               return res.status(400).json({ error: 'Username cant be updated' })
             }
         }
         // check if id is present in the request body and if it matches the id in the request
         if (req.body.id) {
             if (DBUserObj.id !== req.body.id) {
+              helper.logger.error("ID cant be updated");
               return res.status(400).json({ error: 'ID cant be updated' })
             }
         }
-      
+      helper.logger.info("Checks passed.");
       const salt = await bcrypt.genSalt(10);
       const securedPassword = await bcrypt.hash(password, salt)
       
@@ -174,9 +198,10 @@ app.put('/v1/users/:id',auth, async (req, res) => {
       user.username=username;
   
       await user.save()
-  
+      helper.logger.info("User Successfully updated");
       return res.status(204).json()
     } catch (err) {
+      helper.logger.error("DB Error", err);
       console.log(err)
       return res.status(500).json({ error: 'Something went wrong' })
     }
@@ -570,6 +595,7 @@ app.listen(port, async () => {
   console.log('Server up on http://localhost:8000')
   await sequelize.authenticate()
   console.log('Database Connected!')
+  helper.logger.info("Database setup complete.")
   await sequelize.sync({alter:true});
   
 })
