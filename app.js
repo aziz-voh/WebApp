@@ -27,7 +27,7 @@ app.get('/healthz', async (req, res) => {
 ///POSTING USER INFORMATION
 app.post('/v1/users', async (req, res) => {
   helper.logger.info("POST - User");
-  helper.statsdClient.increment('POST_user');
+  helper.statsdClient.increment('POST_user',1);
   const { first_name, username, last_name,password } = req.body
 
   try {
@@ -90,7 +90,7 @@ app.post('/v1/users', async (req, res) => {
 //FETCHING USER INFORMATION
 app.get('/v1/users/:id',auth ,async (req, res) => {
   helper.logger.info(`Get - user for id - ${req.params.id}.`);
-  helper.statsdClient.increment('GET_USER');
+  helper.statsdClient.increment('GET_USER',1);
   if (req.params.id){
         if (req.response.id !== parseInt(req.params.id)) {
           helper.logger.error(`Incorrect user details-Forbidden Resource`);
@@ -126,7 +126,7 @@ app.get('/v1/users/:id',auth ,async (req, res) => {
 //UPDATING USER
 app.put('/v1/users/:id',auth, async (req, res) => {
   helper.logger.info(`UPDATE - user for id - ${req.params.id}.`);
-  helper.statsdClient.increment('UPDATE_user');
+  helper.statsdClient.increment('UPDATE_user',1);
   if (req.params.id){
     if (req.response.id !== parseInt(req.params.id)) {
       helper.logger.error(`Incorrect user details-Forbidden Resource`);
@@ -211,20 +211,25 @@ app.put('/v1/users/:id',auth, async (req, res) => {
 
 //Posting Product Information
   app.post('/v1/product',auth, async(req,res)=>{
+    helper.logger.info("POST - Product");
+    helper.statsdClient.increment('POST_product',1);
     try{
     const owner_user_id=req.response.id
     const { name, description,sku,manufacturer,quantity } = req.body
 
   // Validation for ID
   if (req.body.id){
+    helper.logger.error("Invalid request body for user object");
     return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
   }
   //Validation for date_added,date_last_updated and owner_user_id
   if(req.body.owner_user_id || req.body.date_added || req.body.date_last_updated ){
+    helper.logger.error("These properties cant be provided by the user");
     return res.status(400).json({ error: 'These properties cant be provided by the user' })
   }
   //Validation for quantity
   if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
+    helper.logger.error("Quantity should be between 0 and 100 and it shouldnt be string");
     return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
   }
   //All four fields should be present
@@ -234,6 +239,7 @@ if (!name ||
     !manufacturer ||
     !quantity)
     {
+      helper.logger.error("Name, description,sku,manufacturer,quantity fields are required in the request body");
       return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
     }
     const getProduct = await Product.findOne({
@@ -243,15 +249,19 @@ if (!name ||
   })
 
   if (getProduct) {
+    helper.logger.error("Bad request!! The entered sku value already exists.");
     return res.status(400).json({ error: 'Sku already exists!,Please try a different SKU No' })
   }
   else
   {
+  helper.logger.info("Checks Passed.");
   const product = await Product.create({name, description,sku,manufacturer,quantity,owner_user_id})
+  helper.logger.info("Product Successfully added");
   res.status(201).json(product); 
   }
 }
     catch (err) {
+      helper.logger.error("DB Error - ", err);
       console.log(err)
       return res.status(500).json({ error: 'Some error occurred while creating the Product' })
     }
@@ -260,11 +270,17 @@ if (!name ||
 
 //UPDATING Product Information---PATCH
 app.patch('/v1/product/:id', auth, async (req, res) => {
+  helper.logger.info("PATCH - Product for id - ", req.params.id);
+  helper.statsdClient.increment('PATCH_product',1);
   const id=req.params.id;
   const product = await Product.findOne({ where: { id } })
-  if (!product) return res.status(404).send('Product not found');
+  if (!product) {
+    helper.logger.error("Product not found");
+    return res.status(404).send('Product not found');
+  }
   
   if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    helper.logger.error("You are not authorized to update this product");
     return res.status(401).send('You are not authorized to update this product');
   }
 
@@ -278,33 +294,45 @@ app.patch('/v1/product/:id', auth, async (req, res) => {
   try {
   // Validation for ID
   if (req.body.id){
+    helper.logger.error("Invalid request body for user object");
     return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
   }
   //Validation for date_added,date_last_updated and owner_user_id
   if(req.body.owner_user_id || req.body.date_added || req.body.date_last_updated ){
+    helper.logger.error("These properties cant be provided by the user");
     return res.status(400).json({ error: 'These properties cant be provided by the user' })
   }
   //Validation for quantity
   if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
+    helper.logger.error("Quantity should be between 0 and 100 and it shouldnt be string");
     return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
   }
 
-
+  helper.logger.info("Checks Passed.");
   await Product.update({ ...req.body },{where: {id},});
     // await product.update(req.body,);
+    helper.logger.info("Product Successfully updated");
     return res.status(204).json()
 }  catch (error) {
+    helper.logger.error("DB Error - ", err);
     res.status(400).send(error);
   }
 });
 
 //UPDATING Product Information--PUT
 app.put('/v1/product/:id', auth, async (req, res) => {
+  helper.logger.info("PUT - Product for id - ", req.params.id);
+  helper.statsdClient.increment('PUT_product',1);
+
   const id=req.params.id;
   const product = await Product.findOne({ where: { id } })
-  if (!product) return res.status(404).send('Product not found');
+  if (!product) {
+    helper.logger.error("Product not found");
+    return res.status(404).send('Product not found');
+  }
   
   if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    helper.logger.error("You are not authorized to update this product");
     return res.status(401).send('You are not authorized to update this product');
   }
 
@@ -318,14 +346,17 @@ app.put('/v1/product/:id', auth, async (req, res) => {
   try {
   // Validation for ID
   if (req.body.id){
+    helper.logger.error("Invalid request body for user object");
     return res.status(400).json({ error: 'Invalid request body for user object: ID cannot be provided by the user' })
   }
   //Validation for date_added,date_last_updated and owner_user_id
   if(req.body.owner_user_id || req.body.date_added || req.body.date_last_updated ){
+    helper.logger.error("These properties cant be provided by the user");
     return res.status(400).json({ error: 'These properties cant be provided by the user' })
   }
   //Validation for quantity
   if (quantity < 0 || quantity >100 || typeof req.body.quantity === 'string'){
+    helper.logger.error("Quantity should be between 0 and 100 and it shouldnt be string");
     return res.status(400).json({ error: 'Quantity should be between 0 and 100 and it shouldnt be string' })
   }
 //All four fields should be present
@@ -335,12 +366,16 @@ app.put('/v1/product/:id', auth, async (req, res) => {
   !manufacturer ||
   !quantity)
   {
+    helper.logger.error("All four fields should be present");
     return res.status(400).json({ error: 'Name, description,sku,manufacturer,quantity fields are required in the request body' })
   }
+   helper.logger.info("Checks Passed.");
 
     await product.save();
+    helper.logger.info("Product Successfully updated");
     return res.status(204).json()
 }  catch (error) {
+   helper.logger.error("DB Error - ", err);
     res.status(400).send(error);
   }
 });
@@ -349,20 +384,27 @@ app.put('/v1/product/:id', auth, async (req, res) => {
 
 ////Deleting Product Information
 app.delete('/v1/product/:id', auth, async (req, res) => {
+  helper.logger.info("DELETE - Product for id - ", req.params.id);
+  helper.statsdClient.increment('DELETE_product',1);
   try {
     const id=req.params.id;
     const product = await Product.findOne({ where: { id } })
     if (!product) {
+      helper.logger.error("Product not found");
       return res.status(404).json({ message: 'Product not found' });
     }
     // Check if the user who added the product is making the request
     if (product.owner_user_id !== req.response.id) {
+      helper.logger.error("Not authorized to delete this product");
       return res.status(401).json({ message: 'Not authorized to delete this product' });
     }
     // Delete the product
+    helper.logger.info("All checks passed");
     await product.destroy();
+    helper.logger.info("Product Successfully deleted");
     return res.status(204).json()
   } catch (error) {
+    helper.logger.error("DB Error - ", err);
     res.status(500).json({ message: error.message });
   }
 });
@@ -370,17 +412,22 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
 
 //GET PRODUCTS
 app.get('/v1/product/:id',async (req, res) => {
+  helper.logger.info("GET - Product for id - ", req.params.id);
+  helper.statsdClient.increment('GET_product',1);
     const id = req.params.id
     try {
       const product = await Product.findOne({
         where: { id }
          })
          if (!product){
+            helper.logger.error("ID not present");
             return res.status(404).json({ error: 'ID NOT PRESENT' })
          }
+      helper.logger.info("Product Successfully fetched");
       return res.json(product)
     } catch (err) {
       console.log(err)
+      helper.logger.error("DB Error - ", err);
       return res.status(500).json({ error: 'Something went wrong' })
     }
 })
