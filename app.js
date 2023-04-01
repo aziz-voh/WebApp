@@ -463,10 +463,17 @@ const generateFileName = (bytes = 8) => crypto.randomBytes(bytes).toString('hex'
 
 
 app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
+  helper.logger.info("POST - Image");
+  helper.statsdClient.increment('POST_image_counter');
+
   const id=req.params.id;
   const product = await Product.findOne({ where: { id } })
-  if (!product) return res.status(404).send('Product not found');
+  if (!product) {
+    helper.logger.error("Product not found");
+    return res.status(404).send('Product not found');
+  }
   if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    helper.logger.error("You are not authorized to post this image under this product");
     return res.status(401).json({
       error: 'You are not authorized to post this image under this product',
     });
@@ -474,6 +481,7 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
   
   const file = req.file
   if (!file.mimetype.startsWith("image/")) {
+    helper.logger.error("The file type is not supported");
     return res.status(400).json({
       error: "The file type is not supported",
     });
@@ -500,16 +508,23 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
     s3_bucket_path:s3BucketPath,
   })
   let result = await image.save();
+  helper.logger.info("Image Successfully added");
   return res.status(201).send(result);
 });
 
 //DELETING THE IMAGES
 app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
-  
+  helper.logger.info("DELETE - Image for id ");
+  helper.statsdClient.increment('DELETE_image_counter');
+
   const id=req.params.id;
   const product = await Product.findOne({ where: { id } })
-  if (!product) return res.status(404).send('Product not found');
+  if (!product) {
+    helper.logger.error("Product not found");
+    return res.status(404).send('Product not found');
+  }
   if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    helper.logger.error("You are not authorized to post this image under this product");
     return res.status(401).json({
       error: 'You are not authorized to delete this image under this product',
     });
@@ -521,12 +536,14 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
     },
   });
   if (!image) {
+    helper.logger.error("No product image found");
     return res.status(404).json({
       message: "No product image found",
     });
   }
   
   if (image.product_id!=id) {
+    helper.logger.error("This image doesnt belong to this Product");
     return res.status(404).json({
       message:'This image doesnt belong to this Product',
     });
@@ -543,8 +560,10 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
       console.log(data);
     });
     await image.destroy();
+    helper.logger.info("Image Successfully deleted");
     return res.status(204).send();
   } catch (err) {
+    helper.logger.error("DB Error - ", err);
     console.log(err);
     return res.status(500).send("Error deleting image from S3 bucket");
   }
@@ -553,18 +572,26 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
 
 // Route to get details of a specific product image
 app.get('/v1/product/:id/image/:image_id',auth, async (req, res) => {
+  helper.logger.info("GET - Image for id ");
+  helper.statsdClient.increment('GET_image_counter');
+
   const id=req.params.id;
   const product = await Product.findOne({ where: { id } })
   if (req.params.id){
     if (req.response.id !== parseInt(product.owner_user_id)) {
+      helper.logger.error(`Incorrect user details-Forbidden Resource`);
         return res.status(403).json({
             message: 'Forbidden Resource'
         }),
             console.log("User not match");
     }
 }
-  if (!product) return res.status(404).send('Product not found');
+  if (!product) {
+    helper.logger.error("Product not found");
+    return res.status(404).send('Product not found');
+  }
   if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    helper.logger.error("You are not authorized to post this image under this product");
     return res.status(401).json({
       error: 'You are not authorized to fetch this image under this product',
     });
@@ -578,17 +605,21 @@ app.get('/v1/product/:id/image/:image_id',auth, async (req, res) => {
       },
     });
     if (!image) {
+      helper.logger.error("No product image found");
       return res.status(404).json({
         message: "No product image found",
       });
     }
     if(image.product_id!=id){
+      helper.logger.error("This image doesnt belong to this Product");
       return res.status(403).json({
         message: "This product is not allowed to access other's image",
       });
     }
+    helper.logger.info("Image Successfully fetched");
     res.status(200).json(image);
   } catch (error) {
+    helper.logger.error("DB Error - ", error);
     console.error(error);
     res.status(500).send('Internal server error.');
   }
@@ -598,19 +629,27 @@ app.get('/v1/product/:id/image/:image_id',auth, async (req, res) => {
 
 // Route to get details of all product images
 app.get('/v1/product/:id/image', auth,async (req, res) => {
+  helper.logger.info("GET -All Image for product id");
+  helper.statsdClient.increment('GET_all_image_counter');
+
   const id=req.params.id;
   const product = await Product.findOne({ where: { id } })
   console.log(product)
   if (req.params.id){
     if (req.response.id !== parseInt(product.owner_user_id)) {
+      helper.logger.error(`Incorrect user details-Forbidden Resource`);
         return res.status(403).json({
             message: 'Forbidden Resource'
         }),
             console.log("User not match");
     }
 }
-  if (!product) return res.status(404).json({ message: "Product not found", });
+if (!product) {
+  helper.logger.error("Product not found");
+  return res.status(404).send('Product not found');
+}
   if (product.owner_user_id.toString() !== req.response.id.toString()) {
+    helper.logger.error("You are not authorized to post this image under this product");
     return res.status(401).json({
       error: 'You are not authorized to fetch this image under this product',
     });
@@ -623,13 +662,15 @@ app.get('/v1/product/:id/image', auth,async (req, res) => {
       },
     });
     if (!images.length) {
+      helper.logger.error("No product image found");
       return res.status(404).json({
         message: "No product images found",
       });
     }
-
+    helper.logger.info("Image Successfully fetched");
     res.status(200).json(images);
   } catch (error) {
+    helper.logger.error("DB Error - ", error);
     console.error(error);
     res.status(500).send('Internal server error.');
   }
