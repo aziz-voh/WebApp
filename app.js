@@ -20,7 +20,7 @@ const helper = require('./config/winston');
 
 app.get('/healthz', async (req, res) => {
   helper.logger.info("Healthz route hit!!");
-  helper.statsdClient.increment('healthz');
+  helper.statsdClient.increment('healthz',1);
   res.sendStatus(200);
 })
 
