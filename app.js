@@ -15,14 +15,18 @@ const sharp = require('sharp');
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 const fs = require('fs')
+const helper = require('./config/winston');
 
 
 app.get('/healthz', async (req, res) => {
+  helper.logger.info("Healthz route hit!!");
+  helper.statsdClient.increment('healthz');
   res.sendStatus(200);
 })
 
 ///POSTING USER INFORMATION
 app.post('/v1/users', async (req, res) => {
+  helper.logger.info("POST - User");
   const { first_name, username, last_name,password } = req.body
 
   try {
