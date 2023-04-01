@@ -1,44 +1,11 @@
 const winston = require("winston");
-const WinstonAwsCloudwatch = require("winston-aws-cloudwatch");
+const StatsD = require('node-statsd');
 
-var options = {
-  console: {
-    level: "debug",
-    handleExceptions: true,
-    json: false,
-    colorize: true,
-    timestamp: true,
-  },
-};
+const statsdClient = new StatsD();
 
 const logger = winston.createLogger({
-  transports: [
-    new winston.transports.Console(options.console),
-    new WinstonAwsCloudwatch({
-      logGroupName: "csye6225",
-      logStreamName: "webservice",
-      createLogGroup: true,
-      createLogStream: true,
-      logRetention: 7,
-      json: false,
-      submissionInterval: 200,
-      submissionRetryCount: 1,
-      batchSize: 5,
-      awsConfig: {
-        region: "us-east-1",
-      },
-      formatLog: (item) => `${item.level}: ${item.message}`,
-    }),
-  ],
-  exitOnError: false,
+  format: winston.format.json(),
+  transports: [new winston.transports.File({ filename: 'csye6225.log'})],
 });
 
-logger.level = "silly";
-
-logger.stream({
-  write: function (message, encoding) {
-    logger.info(message);
-  },
-});
-
-module.exports = logger;
+module.exports = {logger,statsdClient};
