@@ -27,6 +27,7 @@ const BasicAuth = async (req, res, next) => {
     //get user with emailid
     const user = await User.findOne({ where: { username: email } });
     if (!user) {
+        helper.logger.error("Plz enter valid user email address");
         return res.status(401).json({
             message: 'Bad Request'
         })
