@@ -23,6 +23,11 @@ app.get('/healthz', async (req, res) => {
   helper.statsdClient.increment('health_counter',1);
   res.sendStatus(200);
 })
+app.get('/healthy', async (req, res) => {
+  helper.logger.info("Healthz route hit!!");
+  helper.statsdClient.increment('health_counter',1);
+  res.sendStatus(200);
+})
 
 ///POSTING USER INFORMATION
 app.post('/v1/users', async (req, res) => {
