@@ -412,7 +412,7 @@ app.delete('/v2/product/:id', auth, async (req, res) => {
   
 
 //GET PRODUCTS
-app.get('/v1/product/:id',async (req, res) => {
+app.get('/v2/product/:id',async (req, res) => {
   helper.logger.info("GET - Product for id - ", req.params.id);
   helper.statsdClient.increment('GET_product',1);
     const id = req.params.id
