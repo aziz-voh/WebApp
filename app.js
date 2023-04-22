@@ -31,7 +31,7 @@ app.get('/healthy', async (req, res) => {
 //Changes
 
 ///POSTING USER INFORMATION
-app.post('/v1/users', async (req, res) => {
+app.post('/v2/users', async (req, res) => {
   helper.logger.info("POST - User");
   helper.statsdClient.increment('POST_user',1);
   const { first_name, username, last_name,password } = req.body
@@ -94,7 +94,7 @@ app.post('/v1/users', async (req, res) => {
 })
 
 //FETCHING USER INFORMATION
-app.get('/v1/users/:id',auth ,async (req, res) => {
+app.get('/v2/users/:id',auth ,async (req, res) => {
   helper.logger.info(`Get - user for id - ${req.params.id}.`);
   helper.statsdClient.increment('GET_USER',1);
   if (req.params.id){
@@ -130,7 +130,7 @@ app.get('/v1/users/:id',auth ,async (req, res) => {
 
 
 //UPDATING USER
-app.put('/v1/users/:id',auth, async (req, res) => {
+app.put('/v2/users/:id',auth, async (req, res) => {
   helper.logger.info(`UPDATE - user for id - ${req.params.id}.`);
   helper.statsdClient.increment('UPDATE_user',1);
   if (req.params.id){
@@ -216,7 +216,7 @@ app.put('/v1/users/:id',auth, async (req, res) => {
 
 
 //Posting Product Information
-  app.post('/v1/product',auth, async(req,res)=>{
+  app.post('/v2/product',auth, async(req,res)=>{
     helper.logger.info("POST - Product");
     helper.statsdClient.increment('POST_product',1);
     try{
@@ -275,7 +275,7 @@ if (!name ||
   
 
 //UPDATING Product Information---PATCH
-app.patch('/v1/product/:id', auth, async (req, res) => {
+app.patch('/v2/product/:id', auth, async (req, res) => {
   helper.logger.info("PATCH - Product for id - ", req.params.id);
   helper.statsdClient.increment('PATCH_product',1);
   const id=req.params.id;
@@ -326,7 +326,7 @@ app.patch('/v1/product/:id', auth, async (req, res) => {
 });
 
 //UPDATING Product Information--PUT
-app.put('/v1/product/:id', auth, async (req, res) => {
+app.put('/v2/product/:id', auth, async (req, res) => {
   helper.logger.info("PUT - Product for id - ", req.params.id);
   helper.statsdClient.increment('PUT_product',1);
 
@@ -389,7 +389,7 @@ app.put('/v1/product/:id', auth, async (req, res) => {
 
 
 ////Deleting Product Information
-app.delete('/v1/product/:id', auth, async (req, res) => {
+app.delete('/v2/product/:id', auth, async (req, res) => {
   helper.logger.info("DELETE - Product for id - ", req.params.id);
   helper.statsdClient.increment('DELETE_product',1);
   try {
@@ -417,7 +417,7 @@ app.delete('/v1/product/:id', auth, async (req, res) => {
   
 
 //GET PRODUCTS
-app.get('/v1/product/:id',async (req, res) => {
+app.get('/v2/product/:id',async (req, res) => {
   helper.logger.info("GET - Product for id - ", req.params.id);
   helper.statsdClient.increment('GET_product',1);
     const id = req.params.id
@@ -468,7 +468,7 @@ const s3 = new AWS.S3({
 const generateFileName = (bytes = 8) => crypto.randomBytes(bytes).toString('hex')
 
 
-app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
+app.post('/v2/product/:id/image',upload.single('file'),auth,async(req, res) => {
   helper.logger.info("POST - Image");
   helper.statsdClient.increment('POST_image_counter');
 
@@ -519,7 +519,7 @@ app.post('/v1/product/:id/image',upload.single('file'),auth,async(req, res) => {
 });
 
 //DELETING THE IMAGES
-app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
+app.delete('/v2/product/:id/image/:image_id', auth, async (req, res) => {
   helper.logger.info("DELETE - Image for id ");
   helper.statsdClient.increment('DELETE_image_counter');
 
@@ -577,7 +577,7 @@ app.delete('/v1/product/:id/image/:image_id', auth, async (req, res) => {
 
 
 // Route to get details of a specific product image
-app.get('/v1/product/:id/image/:image_id',auth, async (req, res) => {
+app.get('/v2/product/:id/image/:image_id',auth, async (req, res) => {
   helper.logger.info("GET - Image for id ");
   helper.statsdClient.increment('GET_image_counter');
 
@@ -634,7 +634,7 @@ app.get('/v1/product/:id/image/:image_id',auth, async (req, res) => {
 
 
 // Route to get details of all product images
-app.get('/v1/product/:id/image', auth,async (req, res) => {
+app.get('/v2/product/:id/image', auth,async (req, res) => {
   helper.logger.info("GET -All Image for product id");
   helper.statsdClient.increment('GET_all_image_counter');
 
