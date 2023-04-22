@@ -18,11 +18,6 @@ const fs = require('fs')
 const helper = require('./config/winston');
 
 
-app.get('/healthz', async (req, res) => {
-  helper.logger.info("Healthz route hit!!");
-  helper.statsdClient.increment('health_counter',1);
-  res.sendStatus(200);
-})
 app.get('/healthy', async (req, res) => {
   helper.logger.info("Healthz route hit!!");
   helper.statsdClient.increment('health_counter',1);
