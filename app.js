@@ -26,7 +26,7 @@ app.get('/healthy', async (req, res) => {
 //Changes
 
 ///POSTING USER INFORMATION
-app.post('/v2/users', async (req, res) => {
+app.post('/v1/users', async (req, res) => {
   helper.logger.info("POST - User");
   helper.statsdClient.increment('POST_user',1);
   const { first_name, username, last_name,password } = req.body
@@ -89,7 +89,7 @@ app.post('/v2/users', async (req, res) => {
 })
 
 //FETCHING USER INFORMATION
-app.get('/v2/users/:id',auth ,async (req, res) => {
+app.get('/v1/users/:id',auth ,async (req, res) => {
   helper.logger.info(`Get - user for id - ${req.params.id}.`);
   helper.statsdClient.increment('GET_USER',1);
   if (req.params.id){
@@ -125,7 +125,7 @@ app.get('/v2/users/:id',auth ,async (req, res) => {
 
 
 //UPDATING USER
-app.put('/v2/users/:id',auth, async (req, res) => {
+app.put('/v1/users/:id',auth, async (req, res) => {
   helper.logger.info(`UPDATE - user for id - ${req.params.id}.`);
   helper.statsdClient.increment('UPDATE_user',1);
   if (req.params.id){
