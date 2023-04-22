@@ -61,13 +61,11 @@ jobs:
           latestAmi=$(aws ec2 describe-images --filters "Name=owner-id,Values=291724537729" --query "sort_by(Images, &CreationDate)[-1].[ImageId]" --output "text")
           echo "latest ami:"
           echo $latestAmi
-          aws ec2 create-launch-template-version --launch-template-id $Latest --launch-template-data "ImageId=$latestAmi" --source-version 1  | grep LaunchTemplateVersionId | awk '{print $2}' | tr -d '",'
+          aws ec2 create-launch-template-version --launch-template-name asg_launch_config --launch-template-data "ImageId=$latestAmi" --source-version 1
         env:
           AWS_REGION: us-east-1
-          TEMPLATE_ID: lt-00a9f157916a53595
       - name: Instance Refresh
         run: |
-          aws autoscaling start-instance-refresh --auto-scaling-group-name autoscaling_group --preferences '{"InstanceWarmup": 300, "MinHealthyPercentage": 50}'
+          aws autoscaling start-instance-refresh --auto-scaling-group-name autoscaling_group --preferences '{"InstanceWarmup": 300, "MinHealthyPercentage": 50}' --desired-configuration '{"LatestTemplate":{"LaunchTemplateName": "asg_launch_config" , "Version": "$Latest"}}'
         env:
           AWS_REGION: us-east-1
-          TEMPLATE_ID: lt-00a9f157916a53595
