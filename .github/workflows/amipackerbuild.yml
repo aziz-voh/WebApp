@@ -66,6 +66,6 @@ jobs:
           AWS_REGION: us-east-1
       - name: Instance Refresh
         run: |
-          aws autoscaling start-instance-refresh --auto-scaling-group-name autoscaling_group --preferences '{"InstanceWarmup": 300, "MinHealthyPercentage": 50}' --desired-configuration '{"LatestTemplate":{"LaunchTemplateName": "asg_launch_config" , "Version": "$Latest"}}'
+          aws autoscaling start-instance-refresh --auto-scaling-group-name autoscaling_group --preferences '{"InstanceWarmup": 300, "MinHealthyPercentage": 50}' --desired-configuration '{"LaunchTemplate":{"LaunchTemplateName": "asg_launch_config" , "Version": "$Latest"}}'
         env:
           AWS_REGION: us-east-1
