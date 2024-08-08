@@ -20,4 +20,3 @@ An automated workflow is created via github actions to run the unit tests via th
 Also, branch protection is added in the upstream repo where unless all the workflows run successfully, it doesn't allow the Pull Request to merge to the main branch.
 
 
-Changes for demo 6
